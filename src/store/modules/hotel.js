@@ -6,16 +6,21 @@ import { useAuthStore } from './auth'
 export const useHotelStore = defineStore('hotel', () => {
   const rooms = ref([])
   const config = ref({})
-  // [新增] 全局统计数据
   const stats = ref({ today_checkins: 0, total_income: 0, total_energy: 0 })
   
-  // 请确保这里改成你的局域网 IP，方便多端测试
-  const socket = io('http://localhost:5000') 
+  // === [关键修改] 动态获取后端地址 ===
+  // 自动识别当前浏览器的 IP 地址，拼接端口 5000
+  // 这样手机访问时，会自动连接到电脑的 IP
+  const protocol = window.location.protocol
+  const hostname = window.location.hostname
+  const backendUrl = `${protocol}//${hostname}:5000`
+  
+  console.log(`正在尝试连接后端: ${backendUrl}`)
+  const socket = io(backendUrl) 
 
   socket.on('sync_data', (data) => {
     if (data.rooms) rooms.value = data.rooms
     if (data.config) config.value = data.config
-    // [新增] 同步统计数据
     if (data.stats) stats.value = data.stats
   })
 
@@ -39,9 +44,7 @@ export const useHotelStore = defineStore('hotel', () => {
     socket.emit('client_action', { roomId, action, value })
   }
 
-  // [新增] 管理员：更新系统设置
   function updateSystemSettings(newConfig) {
-    // 不传 roomId，直接传 action 和 value
     socket.emit('client_action', { action: 'update_settings', value: newConfig })
   }
 
