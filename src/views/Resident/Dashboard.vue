@@ -1,82 +1,130 @@
 <template>
-  <div>
-    <div v-if="myRoom?.status === 'occupied'">
-      <h2 class="section-title"><i class="fas fa-thermometer-half"></i> 空调控制面板 (房间: {{ myRoom.id }})</h2>
+  <div class="dashboard-wrapper">
+    <div v-if="myRoom?.status === 'occupied'" class="main-layout fade-in">
       
-      <div class="stats-container">
-        <div class="stat-card">
-          <div class="stat-label">当前室温</div>
-          <div class="stat-value">{{ myRoom.temp }}℃</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">目标温度</div>
-          <div class="stat-value">{{ myRoom.target }}℃</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">累计费用</div>
-          <div class="stat-value">¥{{ myRoom.currentCost.toFixed(2) }}</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">住户</div>
-          <div class="stat-value" style="font-size: 18px">{{ myRoom.guest?.name }}</div>
-        </div>
-      </div>
-
-      <div class="ac-panel">
-        <div class="ac-display" :class="{ 'is-off': !myRoom.isOn }">
-          <div class="current-temp">{{ myRoom.target }}</div>
-          <div class="temp-label">目标设定温度(℃)</div>
-          <div class="status-text" v-if="!myRoom.isOn">已关机</div>
-        </div>
-        <div class="ac-controls">
-          <div class="control-group">
-            <span class="control-label">调节温度</span>
-            <input type="range" min="18" max="30" :value="myRoom.target" @input="e => updateSettings('target', Number(e.target.value))" class="temp-slider">
-            <span class="temp-value">{{ myRoom.target }}℃</span>
+      <div class="clean-card main-card">
+        <div class="card-header">
+          <div class="title-section">
+            <h1>房间 {{ myRoom.id }}</h1>
+            <div class="status-tag" :class="{ 'active': myRoom.isOn }">
+              <div class="dot"></div>
+              {{ myRoom.isOn ? '舒适运行中' : '设备待机' }}
+            </div>
           </div>
-          <div class="control-group">
-            <span class="control-label">风速模式</span>
-            <div class="fan-speed">
-              <div v-for="speed in ['low', 'medium', 'high']" :key="speed" class="speed-btn" :class="{ active: myRoom.speed === speed }" @click="updateSettings('speed', speed)">
-                {{ getSpeedLabel(speed) }}
+          <p class="subtitle">智能环境控制终端</p>
+        </div>
+
+        <div class="dial-area">
+          <div class="dial-ring" :class="{ 'is-off': !myRoom.isOn }">
+            <div class="dial-content">
+              <div class="temp-big">
+                {{ myRoom.target }}<span class="unit">°C</span>
+              </div>
+              <div class="mode-label">{{ myRoom.isOn ? '制冷模式' : '已关机' }}</div>
+            </div>
+            <svg class="dial-svg" viewBox="0 0 200 200">
+              <circle class="bg-ring" cx="100" cy="100" r="90" />
+              <circle class="progress-ring" cx="100" cy="100" r="90" :stroke-dasharray="calculateStroke(myRoom.target)" />
+            </svg>
+          </div>
+        </div>
+
+        <div class="controls-row" :class="{ 'disabled': !myRoom.isOn }">
+          <div class="control-cell flex-2">
+            <label><i class="ph-bold ph-thermometer"></i> 温度调节</label>
+            <div class="slider-container">
+              <span>18°</span>
+              <input type="range" min="18" max="25" :value="myRoom.target" @input="e => updateSettings('target', Number(e.target.value))">
+              <span>25°</span>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <div class="control-cell flex-1">
+            <label><i class="ph-bold ph-fan"></i> 风速</label>
+            <div class="fan-selector">
+              <div v-for="s in ['low', 'medium', 'high']" :key="s" 
+                   class="fan-opt" :class="{ active: myRoom.speed === s }"
+                   @click="updateSettings('speed', s)">
+                {{ getSpeedLabel(s) }}
               </div>
             </div>
           </div>
-          <button class="power-btn" :class="myRoom.isOn ? 'on' : 'off'" @click="hotelStore.togglePower(myRoom.id)">
-            <i class="fas fa-power-off"></i> {{ myRoom.isOn ? '关机' : '点击开机' }}
+        </div>
+      </div>
+
+      <div class="clean-card side-card">
+        <div class="power-wrapper">
+          <button class="power-btn" :class="{ 'active': myRoom.isOn }" @click="hotelStore.togglePower(myRoom.id)">
+            <i class="ph-bold ph-power"></i>
           </button>
+          <span>{{ myRoom.isOn ? '点击关闭空调' : '点击开启空调' }}</span>
+        </div>
+
+        <div class="info-list">
+          <div class="info-row">
+            <div class="icon-square blue"><i class="ph-fill ph-thermometer-simple"></i></div>
+            <div class="info-detail">
+              <span class="label">实时室温</span>
+              <span class="val">{{ myRoom.temp }}°C</span>
+            </div>
+          </div>
+          
+          <div class="info-row">
+            <div class="icon-square purple"><i class="ph-fill ph-coins"></i></div>
+            <div class="info-detail">
+              <span class="label">累计电费</span>
+              <span class="val">¥ {{ myRoom.currentCost.toFixed(2) }}</span>
+            </div>
+          </div>
+
+          <div class="info-row">
+            <div class="icon-square green"><i class="ph-fill ph-user"></i></div>
+            <div class="info-detail">
+              <span class="label">登记住户</span>
+              <span class="val">{{ myRoom.guest?.name || '--' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="eco-card">
+          <i class="ph-duotone ph-leaf"></i>
+          <div>
+            <strong>节能托管</strong>
+            <p>已优化能耗策略</p>
+          </div>
         </div>
       </div>
     </div>
 
-    <div v-else-if="myRoom?.request" class="waiting-box">
-      <div class="icon-pulse"><i class="fas fa-hourglass-half"></i></div>
-      <h2>已提交入住申请</h2>
-      <p>请稍候，前台工作人员正在核验您的信息...</p>
-      <div class="info-preview">
-        <p>姓名：{{ myRoom.request.name }}</p>
-        <p>证件：{{ myRoom.request.idCard }}</p>
+    <div v-else class="center-layout fade-in">
+      <div class="clean-card form-card">
+        <div v-if="myRoom?.request">
+           <div class="status-icon warning"><i class="ph-fill ph-hourglass"></i></div>
+           <h2>申请审核中</h2>
+           <p class="desc">前台正在处理您的入住请求...</p>
+        </div>
+        <div v-else>
+           <div class="status-icon primary"><i class="ph-fill ph-house-line"></i></div>
+           <h2>欢迎入住</h2>
+           <p class="desc">房间 {{ myRoom?.id }} · 请完善信息激活设施</p>
+           
+           <div class="form-body">
+             <div class="input-box">
+               <label>姓名</label>
+               <input type="text" v-model="form.name" placeholder="请输入真实姓名">
+             </div>
+             <div class="input-box">
+               <label>身份证号</label>
+               <input type="text" v-model="form.idCard" placeholder="请输入证件号码">
+             </div>
+           </div>
+           
+           <button class="submit-btn" @click="submitRequest" :disabled="!form.name || !form.idCard">
+             立即激活 <i class="ph-bold ph-arrow-right"></i>
+           </button>
+        </div>
       </div>
     </div>
-
-    <div v-else class="checkin-box">
-      <h2><i class="fas fa-hotel"></i> 自助办理入住 (房间 {{ myRoom?.id }})</h2>
-      <p class="subtitle">欢迎光临波普特酒店，请完善以下信息以激活房间设施。</p>
-      
-      <div class="form-group">
-        <label>您的姓名</label>
-        <input type="text" v-model="form.name" class="form-control" placeholder="请输入真实姓名">
-      </div>
-      <div class="form-group">
-        <label>身份证号</label>
-        <input type="text" v-model="form.idCard" class="form-control" placeholder="请输入身份证号码">
-      </div>
-      
-      <button class="btn-submit" @click="submitRequest" :disabled="!form.name || !form.idCard">
-        提交入住申请
-      </button>
-    </div>
-
   </div>
 </template>
 
@@ -86,17 +134,14 @@ import { useHotelStore } from '@/store/modules/hotel'
 
 const hotelStore = useHotelStore()
 const myRoom = computed(() => hotelStore.currentUserRoom)
-
 const form = reactive({ name: '', idCard: '' })
 
 function submitRequest() {
-  if (myRoom.value) {
-    hotelStore.submitCheckInRequest(myRoom.value.id, { ...form })
-  }
+  if (myRoom.value) hotelStore.submitCheckInRequest(myRoom.value.id, { ...form })
 }
 
 function getSpeedLabel(speed) {
-  const map = { low: '低风', medium: '中风', high: '高风' }
+  const map = { low: '低', medium: '中', high: '高' }
   return map[speed] || '-'
 }
 
@@ -104,163 +149,206 @@ const updateSettings = (key, value) => {
   if (!myRoom.value) return
   hotelStore.updateRoomState(myRoom.value.id, { [key]: value })
 }
+
+const calculateStroke = (temp) => {
+  const min = 18, max = 30;
+  const percent = Math.max(0, Math.min(1, (temp - min) / (max - min))); 
+  const circumference = 2 * Math.PI * 90; 
+  return `${percent * circumference} ${circumference}`; 
+}
 </script>
 
 <style scoped>
-/* === 1. 统计卡片区域：2x2 网格 === */
-.stats-container {
-  display: grid;
-  /* 强制两列，每列等宽 */
-  grid-template-columns: repeat(2, 1fr) !important; 
-  /* 卡片之间的间距 */
-  gap: 20px; 
-  /* 关键：宽度占满父容器，与下方对齐 */
-  /*width: 100%; */
-  box-sizing: border-box;
-  margin-bottom: 25px;
-}
-
-.stat-card {
-  background: white;
-  padding: 25px;
-  border-radius: 12px; /* 圆角与下方保持一致 */
-  text-align: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05); /* 阴影与下方保持一致 */
+/* =========================================
+   1. 全局容器：改为 Flex 布局，解决高度截断问题
+   ========================================= */
+.dashboard-wrapper {
+  width: 100%;
+  /* 关键修改：从 height: 100% 改为 min-height: 100% 
+     这样当内容多时会自动撑开，不会被截断 */
+  min-height: 100%; 
+  
+  /* 关键修改：使用 flex 布局让内部元素自动撑满高度 */
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  min-height: 110px;
-}
-
-.stat-value { 
-  font-size: 28px; 
-  font-weight: 700; 
-  color: #2a5298; 
-  margin-top: 10px; 
-}
-
-.stat-label { 
-  font-size: 14px; 
-  color: #666; 
-  font-weight: 500;
-}
-
-/* === 2. 下方控制面板 === */
-.ac-panel { 
-  /* 关键：宽度占满，强制使用 border-box 防止 padding 撑大 */
-  width: 100%; 
-  box-sizing: border-box; 
   
-  background: white; 
-  padding: 30px; 
-  border-radius: 12px; 
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
-  margin-top: 0;
+  position: relative;
+  background: transparent; 
+  padding: 40px; 
+  box-sizing: border-box;
+  font-family: 'Inter', -apple-system, sans-serif;
+  color: #1E293B;
+  
+  /* 去掉 overflow: hidden，否则内容多了会被切掉 */
+  /* overflow: hidden;  <-- 删除这行 */
 }
 
-/* === 3. 面板内部元素样式 (保持精致) === */
-.ac-display { 
-  text-align: center; 
-  margin-bottom: 30px; 
-  padding: 25px; 
-  background: #f8f9fa; 
-  border-radius: 12px; 
+/* =========================================
+   2. 主布局：撑满剩余空间
+   ========================================= */
+.main-layout {
   position: relative; 
-  transition: all 0.3s; 
-}
-.ac-display.is-off { opacity: 0.6; filter: grayscale(100%); }
-
-.status-text { 
-  position: absolute; 
-  top: 50%; 
-  left: 50%; 
-  transform: translate(-50%, -50%); 
-  font-size: 24px; 
-  font-weight: bold; 
-  color: #555; 
-  background: rgba(255,255,255,0.95); 
-  padding: 12px 24px; 
-  border-radius: 8px; 
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
-  white-space: nowrap;
-}
-
-.current-temp { font-size: 64px; font-weight: 700; color: #2a5298; line-height: 1; letter-spacing: -2px; }
-.temp-label { color: #888; margin-top: 8px; font-size: 14px; }
-
-.ac-controls { display: flex; flex-direction: column; gap: 25px; }
-.control-group { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; }
-.control-label { font-weight: 600; min-width: 80px; font-size: 15px; color: #333; }
-
-.temp-slider { flex: 1; margin: 0 20px; cursor: pointer; height: 6px; }
-.temp-value { font-weight: bold; color: #2a5298; min-width: 50px; text-align: right; font-size: 18px; }
-
-.fan-speed { display: flex; gap: 15px; flex: 1; }
-.speed-btn { 
-  flex: 1; 
-  text-align: center; 
-  padding: 12px; 
-  border: 1px solid #eee; 
-  background: #fff; 
-  border-radius: 8px; 
-  cursor: pointer; 
-  transition: all 0.2s; 
-  font-size: 14px; 
-  font-weight: 500;
-  color: #555;
-}
-.speed-btn:hover { background: #f0f7ff; border-color: #d0e4ff; }
-.speed-btn.active { background: #2a5298; color: white; border-color: #2a5298; box-shadow: 0 4px 10px rgba(42, 82, 152, 0.2); }
-
-.power-btn { 
-  width: 100%; 
-  padding: 16px; 
-  border: none; 
-  border-radius: 10px; 
-  font-size: 18px; 
-  font-weight: 600; 
-  cursor: pointer; 
+  z-index: 1;
   display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  gap: 10px; 
-  margin-top: 15px; 
-  transition: all 0.2s; 
+  gap: 40px;
+  
+  /* 关键修改：flex: 1 让它占据所有垂直空间 */
+  flex: 1; 
+  /* 删掉 height: 100%，避免限制死高度 */
 }
-.power-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.1); }
-.power-btn.on { background: #e74c3c; color: white; }
-.power-btn.off { background: #2a5298; color: white; }
 
-/* === 其他页面样式 === */
-.checkin-box, .waiting-box {
-  background: white;
+/* =========================================
+   3. 卡片通用样式：确保拉伸对齐
+   ========================================= */
+.clean-card {
+  background: #FFFFFF; 
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03); 
+  border-radius: 32px;
+  border: 1px solid rgba(0,0,0,0.02);
   padding: 40px;
-  border-radius: 12px;
-  text-align: center;
-  max-width: 500px;
-  margin: 50px auto;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-}
-.checkin-box h2 { color: #2a5298; margin-bottom: 10px; }
-.subtitle { color: #666; margin-bottom: 30px; font-size: 14px; }
-.form-group { text-align: left; margin-bottom: 20px; }
-.form-group label { display: block; font-weight: 600; margin-bottom: 8px; color: #444; }
-.form-control { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; }
-.btn-submit { width: 100%; padding: 12px; background: #2a5298; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; }
-.btn-submit:disabled { background: #ccc; cursor: not-allowed; }
-
-.waiting-box .icon-pulse { font-size: 40px; color: #f39c12; margin-bottom: 20px; animation: pulse 1.5s infinite; }
-.info-preview { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-top: 20px; text-align: left; }
-.info-preview p { margin: 5px 0; color: #555; }
-
-@keyframes pulse {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.1); opacity: 0.7; }
-  100% { transform: scale(1); opacity: 1; }
+  
+  /* 关键：让卡片也是 Flex 布局，保证内部元素分布 */
+  display: flex; 
+  flex-direction: column;
+  
+  /* 确保卡片高度自动拉伸，左右卡片等高 */
+  height: auto; 
 }
 
-/* 响应式：手机竖屏变单列 */
-@media (max-width: 480px) {
-  .stats-container { grid-template-columns: 1fr !important; }
+/* 左侧卡片 */
+.main-card {
+  flex: 2;
+  justify-content: space-between;
 }
+
+/* 右侧卡片 */
+.side-card {
+  flex: 1;
+  min-width: 320px;
+  gap: 24px;
+  /* 删掉 justify-content: center，让内容自然排列 */
+}
+
+/* =========================================
+   4. 内部元素 (保持不变)
+   ========================================= */
+.card-header { margin-bottom: 20px; }
+.title-section h1 { margin: 0; font-size: 36px; font-weight: 800; letter-spacing: -1px; color: #0f172a; }
+.subtitle { color: #64748B; margin-top: 8px; font-size: 14px; }
+
+.status-tag {
+  display: inline-flex; align-items: center; gap: 8px; margin-top: 10px;
+  padding: 6px 14px; border-radius: 20px; background: #F1F5F9;
+  font-size: 13px; font-weight: 600; color: #64748B;
+}
+.status-tag.active { background: #DCFCE7; color: #166534; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+
+.dial-area { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; min-height: 360px; /* 防止高度塌陷 */ }
+.dial-ring {
+  width: 340px; height: 340px; border-radius: 50%;
+  position: relative; display: flex; align-items: center; justify-content: center;
+  background: #F8FAFC;
+  box-shadow: 20px 20px 60px rgba(0,0,0,0.03), inset 0 0 0 1px rgba(0,0,0,0.02);
+  transition: all 0.5s;
+}
+.dial-ring.is-off { filter: grayscale(100%); opacity: 0.6; }
+
+.dial-content { text-align: center; z-index: 2; }
+.temp-big { font-size: 96px; font-weight: 800; color: #334155; line-height: 1; letter-spacing: -4px; }
+.temp-big .unit { font-size: 28px; color: #94A3B8; vertical-align: top; margin-top: 12px; display: inline-block; }
+.mode-label { font-size: 18px; color: #64748B; margin-top: 10px; font-weight: 600; }
+
+.dial-svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); pointer-events: none; }
+.bg-ring { fill: none; stroke: #E2E8F0; stroke-width: 12; stroke-linecap: round; }
+.progress-ring { fill: none; stroke: #6366F1; stroke-width: 12; stroke-linecap: round; transition: stroke-dasharray 0.5s ease; }
+
+.controls-row {
+  display: flex; align-items: center; gap: 30px;
+  background: #F8FAFC; 
+  padding: 24px; border-radius: 24px;
+  margin-top: auto; /* 确保它沉底 */
+}
+.controls-row.disabled { opacity: 0.5; pointer-events: none; }
+.control-cell { display: flex; flex-direction: column; gap: 12px; }
+.flex-2 { flex: 2; } .flex-1 { flex: 1; }
+.control-cell label { font-size: 14px; font-weight: 600; color: #64748B; display: flex; gap: 8px; align-items: center; }
+
+.slider-container { display: flex; align-items: center; gap: 15px; color: #94A3B8; font-weight: 600; font-size: 15px; }
+input[type=range] { flex: 1; -webkit-appearance: none; height: 6px; background: #E2E8F0; border-radius: 3px; cursor: pointer; }
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 24px; height: 24px; background: #6366F1; border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4); border: 3px solid #fff; cursor: pointer; transition: transform 0.1s;
+}
+input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.1); }
+.divider { width: 1px; height: 50px; background: #E2E8F0; }
+
+.fan-selector { display: flex; background: #E2E8F0; padding: 5px; border-radius: 14px; }
+.fan-opt {
+  flex: 1; text-align: center; padding: 10px; font-size: 14px; color: #64748B; border-radius: 10px; cursor: pointer; transition: 0.2s; font-weight: 500;
+}
+.fan-opt.active { background: #fff; color: #6366F1; font-weight: 700; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+
+/* 右侧元素 */
+.power-wrapper { text-align: center; margin-bottom: 20px; }
+.power-btn {
+  width: 100px; height: 100px; border-radius: 50%; border: none; margin: 0 auto 15px;
+  background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #f1f5f9;
+  font-size: 40px; color: #94A3B8; cursor: pointer; transition: 0.3s;
+  display: flex; align-items: center; justify-content: center;
+}
+.power-btn:hover { transform: scale(1.05); border-color: #6366F1; color: #6366F1; }
+.power-btn.active { 
+  background: linear-gradient(135deg, #6366F1, #818CF8); 
+  color: #fff; border: none;
+  box-shadow: 0 15px 40px rgba(99, 102, 241, 0.3); 
+}
+.power-wrapper span { font-size: 15px; color: #64748B; font-weight: 500; }
+
+.info-list { display: flex; flex-direction: column; gap: 20px; width: 100%; flex: 1; /* 让列表占据中间空间 */ }
+.info-row {
+  display: flex; align-items: center; gap: 20px; padding: 20px;
+  background: #F8FAFC; border-radius: 20px; 
+  transition: transform 0.2s;
+}
+.info-row:hover { transform: translateX(5px); background: #f1f5f9; }
+
+.icon-square { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.blue { background: #E0F2FE; color: #0EA5E9; }
+.purple { background: #F3E8FF; color: #A855F7; }
+.green { background: #DCFCE7; color: #22C55E; }
+.info-detail { display: flex; flex-direction: column; }
+.info-detail .label { font-size: 13px; color: #64748B; margin-bottom: 2px; }
+.info-detail .val { font-size: 20px; font-weight: 700; color: #1E293B; }
+
+.eco-card {
+  margin-top: auto; /* 关键：强制推到最底部 */
+  background: #ECFDF5; color: #065F46;
+  padding: 20px; border-radius: 20px; display: flex; align-items: center; gap: 16px;
+}
+.eco-card i { font-size: 28px; }
+.eco-card strong { font-size: 15px; display: block; margin-bottom: 4px; }
+.eco-card p { margin: 0; font-size: 13px; opacity: 0.9; }
+
+/* 居中表单 */
+.center-layout { display: flex; align-items: center; justify-content: center; height: 100%; }
+.form-card { 
+  width: 500px; text-align: center; 
+  background: #fff; box-shadow: 0 20px 50px rgba(0,0,0,0.05);
+  border-radius: 30px; padding: 40px;
+} 
+.status-icon { width: 70px; height: 70px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 32px; }
+.primary { background: #EEF2FF; color: #6366F1; }
+.warning { background: #FFFBEB; color: #F59E0B; }
+.desc { color: #64748B; margin-bottom: 30px; font-size: 15px; }
+.form-body { text-align: left; display: flex; flex-direction: column; gap: 20px; margin-bottom: 30px; }
+.input-box label { display: block; font-size: 14px; font-weight: 600; color: #475569; margin-bottom: 8px; }
+.input-box input { width: 100%; padding: 14px; border: 1px solid #E2E8F0; background: #F8FAFC; border-radius: 12px; box-sizing: border-box; outline: none; transition: 0.2s; }
+.input-box input:focus { background: #fff; border-color: #6366F1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+.submit-btn { width: 100%; padding: 16px; background: #6366F1; color: white; border: none; border-radius: 14px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
+.submit-btn:hover:not(:disabled) { background: #4F46E5; box-shadow: 0 8px 16px rgba(99, 102, 241, 0.3); transform: translateY(-2px); }
+.submit-btn:disabled { background: #CBD5E1; cursor: not-allowed; }
+
+.fade-in { animation: fadeIn 0.5s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>
